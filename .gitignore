@@ -13,3 +13,7 @@ __pycache__/
 # 临时文件
 *.log
 /tmp/
+
+# 行情调试残留（腾讯/新浪原始响应）
+data/market_data/*.txt
+data/market_data/*.json
