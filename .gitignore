@@ -1,0 +1,15 @@
+# 研报 PDF（~98MB，直链见 04_研报与信源清单.md，需要时用 git-lfs 纳入）；README 例外保留
+reports/*
+!reports/README.md
+
+# macOS
+.DS_Store
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+
+# 临时文件
+*.log
+/tmp/
