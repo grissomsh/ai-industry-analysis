@@ -21,7 +21,7 @@ ai-industry-analysis/
 ├── 07_前瞻情景_加息叠加盈利miss的AI开支决策树_20260915.md  # 前瞻压力测试：三档情景 + 可证伪判断
 ├── reports/                      # 研报 PDF 与招股书归档（12 个目录、68 份，不入 git，直链见 04）
 ├── data/
-│   ├── companies.csv             # 数据主表：146 行 × 14 列（含 AI 收入占比/供应链风险/海外产能）
+│   ├── companies.csv             # 数据主表：147 行 × 14 列（含 AI 收入占比/供应链风险/海外产能）
 │   └── market_data/              # FRED 序列 CSV + 宏观触发器面板 + 行情快照
 └── .claude/skills/market-view-verify/   # 观点核验 skill（五步工作流 + 触发器阈值 + 数据脚本）
 ```
