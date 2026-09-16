@@ -1,0 +1,443 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>AI 产业分析 · 可视化仪表盘</title>
+<style>
+:root{
+  --bg:#0b0f14; --panel:#121821; --panel2:#0f141c; --border:#1f2937; --border2:#2a3648;
+  --text:#e5e7eb; --muted:#94a3b8; --dim:#64748b;
+  --amber:#f59e0b; --red:#ef4444; --green:#10b981; --blue:#3b82f6; --purple:#a78bfa; --cyan:#22d3ee;
+  --mono:"SF Mono",Menlo,Consolas,monospace;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{background:var(--bg);color:var(--text);font:14px/1.6 -apple-system,BlinkMacSystemFont,"PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif}
+a{color:var(--cyan);text-decoration:none}
+::selection{background:rgba(245,158,11,.35)}
+
+/* ===== 顶栏 ===== */
+#topbar{position:sticky;top:0;z-index:50;background:rgba(11,15,20,.92);backdrop-filter:blur(10px);border-bottom:1px solid var(--border);padding:0 20px;display:flex;align-items:center;gap:24px;height:52px}
+.brand{font-weight:700;font-size:15px;letter-spacing:.5px;white-space:nowrap}
+.brand .sub{color:var(--dim);font-weight:400;font-size:12px;margin-left:8px}
+#tabs{display:flex;gap:4px;flex:1;overflow-x:auto}
+#tabs button{background:none;border:none;color:var(--muted);font:inherit;font-size:13px;padding:6px 13px;border-radius:8px;cursor:pointer;white-space:nowrap}
+#tabs button:hover{color:var(--text);background:#1a2230}
+#tabs button.on{color:#0b0f14;background:var(--amber);font-weight:600}
+#genmeta{color:var(--dim);font-size:11px;white-space:nowrap}
+
+main{max-width:1320px;margin:0 auto;padding:24px 20px 80px}
+h2.sec{font-size:17px;margin:34px 0 14px;padding-left:10px;border-left:3px solid var(--amber)}
+h2.sec:first-child{margin-top:4px}
+h2.sec .en{color:var(--dim);font-size:12px;font-weight:400;margin-left:8px}
+.note{color:var(--muted);font-size:12.5px;margin:6px 0 12px}
+
+/* ===== 卡片 ===== */
+.cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:12px}
+.card{background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:14px 16px}
+.card .k{color:var(--muted);font-size:12px;margin-bottom:6px}
+.card .v{font-size:24px;font-weight:700;font-family:var(--mono);line-height:1.2}
+.card .s{color:var(--dim);font-size:11.5px;margin-top:4px}
+.card .v.up{color:var(--green)} .card .v.down{color:var(--red)}
+.card.wide{grid-column:span 2}
+.quote{border-left:3px solid var(--amber);background:var(--panel);border-radius:0 12px 12px 0;padding:14px 18px;color:var(--text);font-size:13.5px}
+
+/* ===== 状态 pill ===== */
+.pill{display:inline-block;padding:1px 9px;border-radius:20px;font-size:11.5px;font-weight:600;white-space:nowrap}
+.pill.hit{background:rgba(239,68,68,.15);color:var(--red);border:1px solid rgba(239,68,68,.4)}
+.pill.watch{background:rgba(245,158,11,.13);color:var(--amber);border:1px solid rgba(245,158,11,.4)}
+.pill.ok{background:rgba(16,185,129,.13);color:var(--green);border:1px solid rgba(16,185,129,.4)}
+.pill.off{background:#1a2230;color:var(--dim);border:1px solid var(--border2)}
+.pill.blue{background:rgba(59,130,246,.13);color:var(--blue);border:1px solid rgba(59,130,246,.4)}
+
+/* ===== 表格 ===== */
+table{width:100%;border-collapse:collapse;background:var(--panel);border:1px solid var(--border);border-radius:10px;overflow:hidden;font-size:13px}
+.wrap{overflow-x:auto;border-radius:10px}
+th{background:var(--panel2);color:var(--muted);font-weight:600;text-align:left;padding:9px 12px;font-size:12px;border-bottom:1px solid var(--border2);white-space:nowrap;position:sticky;top:52px}
+td{padding:9px 12px;border-bottom:1px solid var(--border);vertical-align:top}
+tr:last-child td{border-bottom:none}
+tr.click{cursor:pointer} tr.click:hover td{background:#161e2b}
+td.num{font-family:var(--mono);white-space:nowrap}
+.stars{color:var(--amber);letter-spacing:1px;white-space:nowrap}
+.up{color:var(--green)} .down{color:var(--red)}
+.small{font-size:12px;color:var(--muted)}
+
+/* ===== 产业链 ===== */
+.layer{margin-bottom:26px}
+.layer>h3{font-size:14px;margin-bottom:10px;display:flex;align-items:center;gap:8px}
+.layer>h3 .tag{padding:2px 10px;border-radius:6px;font-size:12px;font-weight:700}
+.tracks{display:grid;grid-template-columns:repeat(auto-fill,minmax(330px,1fr));gap:12px}
+.track{background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:12px 14px}
+.track .th{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
+.track .tn{font-weight:600;font-size:13.5px}
+.track .meta{color:var(--dim);font-size:11.5px}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{background:#1a2230;border:1px solid var(--border2);border-radius:7px;padding:3px 9px;font-size:12px;cursor:pointer;display:inline-flex;align-items:center;gap:6px}
+.chip:hover{border-color:var(--amber);color:var(--amber)}
+.dot{width:7px;height:7px;border-radius:50%;display:inline-block;flex:none}
+.dot.listed{background:var(--green)} .dot.unlisted{background:#475569} .dot.pending{background:var(--amber)}
+
+/* ===== 情景 ===== */
+.scen{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:12px;margin:12px 0}
+.scen .card{position:relative;overflow:hidden}
+.probbar{height:7px;background:#1a2230;border-radius:4px;margin-top:10px;overflow:hidden}
+.probbar i{display:block;height:100%;border-radius:4px}
+.tree{display:flex;flex-direction:column;align-items:center;gap:0;margin:18px 0}
+.tnode{background:var(--panel);border:1px solid var(--border2);border-radius:10px;padding:10px 18px;text-align:center;font-size:13px}
+.tnode.hot{border-color:var(--red);color:#fca5a5;font-weight:600}
+.varrow{width:1px;height:18px;background:var(--border2)}
+.trow{display:flex;gap:10px;justify-content:center;flex-wrap:wrap}
+.trow .tnode{font-size:12.5px;padding:8px 14px}
+.tl{border-left:2px solid var(--border2);margin-left:8px;padding-left:20px}
+.tl .ev{position:relative;margin-bottom:14px}
+.tl .ev::before{content:"";position:absolute;left:-25px;top:6px;width:8px;height:8px;border-radius:50%;background:var(--amber)}
+.tl .ev .d{font-family:var(--mono);color:var(--amber);font-size:12px;font-weight:700}
+.pred{cursor:pointer}
+.pred .st{font-size:11px;padding:1px 8px;border-radius:10px;white-space:nowrap}
+.st.p0{background:#1a2230;color:var(--dim)} .st.p1{background:rgba(16,185,129,.15);color:var(--green)} .st.p2{background:rgba(239,68,68,.15);color:var(--red)}
+details{background:var(--panel);border:1px solid var(--border);border-radius:10px;padding:10px 16px;margin-bottom:10px}
+details summary{cursor:pointer;color:var(--text);font-weight:600;font-size:13px}
+details ul{margin:8px 0 4px 18px;color:var(--muted);font-size:12.5px}
+details li{margin-bottom:4px}
+
+/* ===== 清单工具栏 ===== */
+.toolbar{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:12px;align-items:center}
+.toolbar input,.toolbar select{background:var(--panel);border:1px solid var(--border2);border-radius:8px;color:var(--text);font:inherit;font-size:13px;padding:6px 10px}
+.toolbar input{width:240px}
+.toolbar input:focus,.toolbar select:focus{outline:none;border-color:var(--amber)}
+.toolbar .cnt{color:var(--dim);font-size:12px;margin-left:auto}
+th.sortable{cursor:pointer} th.sortable:hover{color:var(--amber)}
+
+/* ===== 抽屉 ===== */
+#backdrop{position:fixed;inset:0;background:rgba(0,0,0,.55);opacity:0;pointer-events:none;transition:.2s;z-index:90}
+#backdrop.on{opacity:1;pointer-events:auto}
+#drawer{position:fixed;top:0;right:-420px;width:400px;max-width:92vw;height:100vh;background:var(--panel2);border-left:1px solid var(--border2);z-index:100;transition:right .22s ease;overflow-y:auto;padding:20px}
+#drawer.on{right:0}
+#drawer h3{font-size:16px;margin-bottom:2px}
+#drawer .sub2{color:var(--dim);font-size:12px;margin-bottom:14px}
+.kv{display:grid;grid-template-columns:96px 1fr;gap:7px 10px;font-size:12.5px;margin-top:12px}
+.kv .k{color:var(--dim)}
+.kv .v{color:var(--text);word-break:break-all}
+#drawer .x{float:right;background:none;border:none;color:var(--dim);font-size:18px;cursor:pointer}
+#drawer .x:hover{color:var(--red)}
+
+/* ===== 散点图 ===== */
+.scatter circle{cursor:pointer}
+.scatter circle:hover{stroke:#fff;stroke-width:1.5}
+#tip{position:fixed;background:#0b0f14;border:1px solid var(--border2);border-radius:8px;padding:6px 10px;font-size:12px;pointer-events:none;opacity:0;transition:.1s;z-index:200;white-space:nowrap}
+@media(max-width:760px){#genmeta{display:none}.brand .sub{display:none}.card.wide{grid-column:span 1}}
+</style>
+</head>
+<body>
+<nav id="topbar">
+  <div class="brand">AI 产业分析<span class="sub">GPU 产业链 · 替代率地图 · 观点核验</span></div>
+  <div id="tabs"></div>
+  <div id="genmeta"></div>
+</nav>
+<main id="app"></main>
+<div id="backdrop"></div>
+<aside id="drawer"></aside>
+<div id="tip"></div>
+
+<script>const DATA = __DATA_JSON__;</script>
+<script>
+"use strict";
+const $=(s,p=document)=>p.querySelector(s);
+const esc=s=>String(s??"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
+const strip=s=>String(s??"").replace(/\[([^\]]+)\]\([^)]*\)/g,"$1").replace(/\*\*/g,"").replace(/`/g,"").replace(/^⚠️\s*/,"");
+const mono=v=>`<span style="font-family:var(--mono)">${esc(v)}</span>`;
+const LAYER_COLOR={"L0-设备":"#ef4444","L0-制造封测":"#f97316","L1-芯片":"#f59e0b","L2-整机":"#10b981","L2-基础设施":"#3b82f6","L3-应用":"#a78bfa"};
+const STATUS=st=>{
+  if(/未上市/.test(st))return["unlisted","未上市"];
+  if(/进行中/.test(st))return["pending","进行中"];
+  return["listed","上市"];
+};
+/* ---------- SVG 图表 ---------- */
+function spark(values,w,h,color,threshold){
+  if(!values||values.length<2)return"";
+  const min=Math.min(...values,threshold??Infinity),max=Math.max(...values,threshold??-Infinity);
+  const pad=(max-min)||1;
+  const X=i=>2+(w-4)*i/(values.length-1);
+  const Y=v=>h-3-(h-6)*(v-min)/pad;
+  let pts=values.map((v,i)=>`${X(i).toFixed(1)},${Y(v).toFixed(1)}`).join(" ");
+  let th="";
+  if(threshold!=null&&isFinite(threshold)&&threshold>=min&&threshold<=max)
+    th=`<line x1="0" x2="${w}" y1="${Y(threshold)}" y2="${Y(threshold)}" stroke="#ef4444" stroke-width="1" stroke-dasharray="3,3" opacity=".7"/>`;
+  return`<svg width="${w}" height="${h}" viewBox="0 0 ${w} ${h}"><polyline points="${pts}" fill="none" stroke="${color}" stroke-width="1.6"/>${th}</svg>`;
+}
+function lineChart(pts,w,h,color,ann){
+  // pts:[{x label,y}]  ann:[{i,text}]
+  if(!pts.length)return"";
+  const min=Math.min(...pts.map(p=>p.y)),max=Math.max(...pts.map(p=>p.y)),pad=(max-min)||1;
+  const L=44,R=64,T=26,B=40;
+  const X=i=>L+(w-L-R)*i/(pts.length-1);
+  const Y=v=>T+(h-T-B)*(1-(v-min)/pad);
+  const path=pts.map((p,i)=>`${i?"L":"M"}${X(i).toFixed(1)},${Y(p.y).toFixed(1)}`).join(" ");
+  let s=`<svg width="100%" viewBox="0 0 ${w} ${h}" style="max-width:${w}px">`;
+  s+=`<line x1="${L}" y1="${h-B}" x2="${w-R+30}" y2="${h-B}" stroke="#2a3648"/>`;
+  s+=`<line x1="${L}" y1="${T}" x2="${L}" y2="${h-B}" stroke="#2a3648"/>`;
+  s+=`<text x="${L-6}" y="${Y(max)+4}" fill="#64748b" font-size="10" text-anchor="end">${max.toFixed(2)}</text>`;
+  s+=`<text x="${L-6}" y="${Y(min)+4}" fill="#64748b" font-size="10" text-anchor="end">${min.toFixed(2)}</text>`;
+  pts.forEach((p,i)=>{s+=`<circle cx="${X(i)}" cy="${Y(p.y)}" r="3.5" fill="${color}"/>`;
+    s+=`<text x="${X(i)}" y="${h-B+14}" fill="#94a3b8" font-size="10" text-anchor="middle">${esc(p.x)}</text>`;
+    s+=`<text x="${X(i)}" y="${Y(p.y)-9}" fill="${color}" font-size="10.5" text-anchor="middle" font-weight="700">${p.y.toFixed(2)}</text>`;});
+  s+=`<path d="${path}" fill="none" stroke="${color}" stroke-width="2"/>`;
+  (ann||[]).forEach(a=>{const p=pts[a.i];if(!p)return;
+    s+=`<text x="${X(a.i)}" y="${Y(p.y)+18+(a.dy||0)}" fill="#f59e0b" font-size="9.5" text-anchor="middle">${esc(a.text)}</text>`;});
+  return s+"</svg>";
+}
+/* ---------- 抽屉 ---------- */
+function showDrawer(idx){
+  const c=DATA.companies[idx];if(!c)return;
+  const rows=[["层级/赛道",`${esc(c.layer)} · ${esc(c.track)}`],["核心产品",esc(c.product)],["上市状态",esc(c.status)],["代码/市场",esc(c.code)],["海外主导者",esc(c.foreign)],["国产化率",esc(c.localization)],["卡脖子等级",`<span class="stars">${"★".repeat(c.stars||0)||"—"}</span>`],["证据等级",esc(c.evidence)],["AI 收入占比",esc(c.ai_share)],["供应链风险",esc(c.supply_risk)],["海外产能",esc(c.overseas)],["备注",esc(c.note)]];
+  $("#drawer").innerHTML=`<button class="x" onclick="closeDrawer()">✕</button><h3>${esc(c.name)}</h3><div class="sub2">${esc(c.layer)} / ${esc(c.track)}</div><div class="kv">${rows.map(([k,v])=>`<div class="k">${k}</div><div class="v">${v===""||v==null?"—":v}</div>`).join("")}</div>`;
+  $("#drawer").classList.add("on");$("#backdrop").classList.add("on");
+}
+function closeDrawer(){$("#drawer").classList.remove("on");$("#backdrop").classList.remove("on")}
+$("#backdrop").onclick=closeDrawer;
+
+/* ---------- Tab 框架 ---------- */
+const TABS=[
+  {id:"overview",label:"总览",fn:renderOverview},
+  {id:"chain",label:"产业链地图",fn:renderChain},
+  {id:"sub",label:"替代率地图",fn:renderSub},
+  {id:"list",label:"公司清单",fn:renderList},
+  {id:"scenario",label:"情景前瞻",fn:renderScenario},
+  {id:"macro",label:"宏观行情",fn:renderMacro},
+];
+function buildTabs(){
+  $("#tabs").innerHTML=TABS.map(t=>`<button data-id="${t.id}">${t.label}</button>`).join("");
+  $("#tabs").onclick=e=>{const b=e.target.closest("button");if(b)location.hash=b.dataset.id;};
+  $("#genmeta").textContent=`生成于 ${DATA.meta.generated_at}`;
+}
+function switchTab(){
+  const id=(location.hash||"#overview").slice(1);
+  const t=TABS.find(t=>t.id===id)||TABS[0];
+  document.querySelectorAll("#tabs button").forEach(b=>b.classList.toggle("on",b.dataset.id===t.id));
+  $("#app").innerHTML="";t.fn($("#app"));
+  window.scrollTo(0,0);
+}
+window.onhashchange=switchTab;
+
+/* ---------- 1. 总览 ---------- */
+function renderOverview(root){
+  const cs=DATA.companies;
+  const listed=cs.filter(c=>STATUS(c.status)[0]==="listed").length;
+  const unlisted=cs.filter(c=>STATUS(c.status)[0]==="unlisted").length;
+  const sec=DATA.macro.sections;
+  const hits=sec.filter(s=>s.level==="hit").length,watches=sec.filter(s=>s.level==="watch").length;
+  const f=k=>DATA.fred[k];
+  const sd=DATA.scenarios.sdllmtk;
+  const sdLatest=sd.length?sd[sd.length-1]:null;
+  const sdPeak=sd.length?Math.max(...sd.map(p=>p.value)):null;
+  const dd=sdLatest&&sdPeak?((sdLatest.value/sdPeak-1)*100):null;
+  root.innerHTML=`
+  <h2 class="sec">数据速览<span class="en">OVERVIEW</span></h2>
+  <div class="cards">
+    <div class="card"><div class="k">公司覆盖（CSV 主表）</div><div class="v">${cs.length}</div><div class="s">上市 ${listed} · 未上市 ${unlisted} · 覆盖 ${new Set(cs.map(c=>c.track)).size} 个赛道</div></div>
+    <div class="card"><div class="k">宏观触发器</div><div class="v"><span class="pill hit">🔴 ${hits}</span> <span class="pill watch">⏳ ${watches}</span> <span class="pill ok">🟢 ${sec.filter(s=>s.level==="ok").length}</span></div><div class="s">已触发 ${hits} 个 / 测试中 ${watches} 个</div></div>
+    ${f("DFII10")?`<div class="card"><div class="k">10Y 实际利率（阈值 2.5%）</div><div class="v ${f("DFII10").latest>=2.5?"down":""}">${f("DFII10").latest.toFixed(2)}%</div><div class="s">${f("DFII10").latest_date} · 凯投宏观泡沫触发器</div></div>`:""}
+    ${f("BAMLH0A0HYM2")?`<div class="card"><div class="k">高收益债利差 HY OAS</div><div class="v">${f("BAMLH0A0HYM2").latest.toFixed(2)}%</div><div class="s">>3.0% = 信用传导开启（06 核验核心阀）</div></div>`:""}
+    ${f("VIXCLS")?`<div class="card"><div class="k">VIX</div><div class="v">${f("VIXCLS").latest.toFixed(1)}</div><div class="s">>25 恐慌 / >30 强制降仓线</div></div>`:""}
+    ${f("DCOILBRENTEU")?`<div class="card"><div class="k">Brent 原油</div><div class="v">$${f("DCOILBRENTEU").latest.toFixed(1)}</div><div class="s">YTD ${f("DCOILBRENTEU").ytd_change} · 因果链源头变量</div></div>`:""}
+    ${sdLatest?`<div class="card"><div class="k">SDLLMTK Token 价格指数</div><div class="v down">${sdLatest.value.toFixed(2)}</div><div class="s">${esc(sdLatest.date)} · 距峰值 ${dd.toFixed(0)}%（收入侧唯一日频先行指标）</div></div>`:""}
+  </div>
+  ${DATA.causal.verdict_text?`<h2 class="sec">因果链综合判断<span class="en">06 · 因果链核验</span></h2><div class="quote">${esc(strip(DATA.causal.verdict_text))}</div>`:""}
+  ${DATA.causal.chain&&DATA.causal.chain.length>1?`<h2 class="sec">因果链逐环判定<span class="en">06 · 战争→油价→通胀→加息→收缩→AI</span></h2>
+  <div class="tl">${DATA.causal.chain.slice(1).map(r=>{
+    const v=strip(r[1]);
+    const lvl=/❌/.test(v)?"hit":/⚠️/.test(v)?"watch":/✅/.test(v)?"ok":"off";
+    const ev=strip(r[2]||"");
+    return`<div class="ev"><span class="pill ${lvl}">${esc(v.split("（")[0])}</span> <b>${esc(strip(r[0]))}</b><br><span class="small">${esc(ev.length>150?ev.slice(0,150)+"…":ev)}</span></div>`;}).join("")}</div>`:""}
+  <h2 class="sec">宏观触发器面板<span class="en">MACRO TRIGGERS</span></h2>
+  <div class="wrap"><table><tr><th>#</th><th>状态</th><th>触发器 / 规则</th><th>最新</th></tr>
+  ${sec.map(s=>`<tr><td class="num">${s.no}</td><td>${s.level?`<span class="pill ${s.level}">${s.level==="hit"?"🔴 已触发":s.level==="watch"?"⏳ 测试中":"🟢 正常"}</span>`:"—"}</td><td><b>${esc(s.name)}</b><br><span class="small">${esc(s.rule)}</span></td><td class="num">${esc(s.latest||"—")}</td></tr>`).join("")}
+  </table></div>
+  <h2 class="sec">行情结构快照<span class="en">QUOTES</span></h2>
+  <div class="note">${esc(DATA.quotes.map(q=>q.group).join(" / "))}（新浪/腾讯快照，见 QUOTES_SNAPSHOT.md）</div>
+  <div class="cards">${DATA.quotes.map(q=>`
+    <div class="card wide"><div class="k">${esc(q.group)}</div>
+    <div class="wrap" style="border:none"><table style="border:none">
+    <tr><th>公司</th><th>现价</th><th>涨跌</th><th>PE</th><th>市值(亿)</th></tr>
+    ${q.rows.map(r=>`<tr><td>${esc(r[1])}</td><td class="num">${esc(r[2])}</td><td class="num ${/^\+/.test(r[3])?"up":"down"}">${esc(r[3])}</td><td class="num">${esc(r[4])}</td><td class="num">${esc(r[5])}</td></tr>`).join("")}
+    </table></div></div>`).join("")}
+  </div>`;
+}
+
+/* ---------- 2. 产业链地图 ---------- */
+function renderChain(root){
+  root.innerHTML=`<h2 class="sec">GPU 产业链全景<span class="en">L0~L2 · 来自 02 清单 / companies.csv</span></h2>
+  <div class="note">点击公司查看 14 字段明细。圆点：<span class="dot listed"></span> 上市 <span class="dot unlisted"></span> 未上市 <span class="dot pending"></span> 进行中</div>
+  ${DATA.chain.map(layer=>`
+    <div class="layer"><h3><span class="tag" style="background:${LAYER_COLOR[layer.layer]||"#64748b"}22;color:${LAYER_COLOR[layer.layer]||"#94a3b8"}">${esc(layer.layer)}</span>
+    <span class="small">${layer.tracks.length} 个赛道 · ${layer.tracks.reduce((a,t)=>a+t.items.length,0)} 家</span></h3>
+    <div class="tracks">${layer.tracks.map(t=>`
+      <div class="track"><div class="th"><span class="tn">${esc(t.track)}</span>
+      <span class="meta">${t.localization?esc(strip(t.localization)):"—"} <span class="stars">${"★".repeat(Math.min(t.stars||0,5))}</span></span></div>
+      <div class="chips">${t.items.map(i=>{const c=DATA.companies[i];const[cls,label]=STATUS(c.status);
+        return`<span class="chip" onclick="showDrawer(${i})"><span class="dot ${cls}" title="${label}"></span>${esc(c.name)}</span>`;}).join("")}
+      </div></div>`).join("")}</div></div>`).join("")}`;
+}
+
+/* ---------- 3. 替代率地图 ---------- */
+let pctCache=null;
+function trackPct(){
+  if(pctCache)return pctCache;
+  const map=new Map();
+  const parse=v=>{
+    if(v==null)return null;const s=strip(v);
+    let m=s.match(/(\d+(?:\.\d+)?)\s*[-~]\s*(\d+(?:\.\d+)?)\s*%/);if(m)return(+m[1]+ +m[2])/2;
+    m=s.match(/[<~≈]\s*(\d+(?:\.\d+)?)\s*%/);if(m)return+m[1];
+    m=s.match(/(\d+(?:\.\d+)?)\s*%/);if(m)return+m[1];
+    if(/全球领先|全球第一/.test(s))return 75;if(/较高/.test(s))return 65;if(/^高（|^高$/.test(s))return 65;
+    if(/中等/.test(s))return 45;if(/较低/.test(s))return 20;if(/^低（|^低$/.test(s))return 15;if(/极低/.test(s))return 5;if(/空白/.test(s))return 2;
+    return null;};
+  DATA.companies.forEach(c=>{
+    const x=parse(c.localization);if(x==null)return;
+    const cur=map.get(c.track)||{x:0,n:0,stars:0};
+    cur.x+=x;cur.n++;cur.stars=Math.max(cur.stars,c.stars||0);map.set(c.track,cur);});
+  pctCache=[...map.entries()].map(([track,v])=>({track,x:v.x/v.n,stars:v.stars,n:v.n})).sort((a,b)=>a.x-b.x);
+  return pctCache;
+}
+function renderSub(root){
+  const pts=trackPct();
+  const tcol={};DATA.companies.forEach(c=>{if(!(c.track in tcol))tcol[c.track]=LAYER_COLOR[c.layer]||"#94a3b8";});
+  const usedLayers=Object.keys(LAYER_COLOR).filter(l=>pts.some(p=>tcol[p.track]===LAYER_COLOR[l]));
+  const W=900,H=340,L=46,R=140,T=18,B=34;
+  const X=x=>L+(W-L-R)*x/80, Y=s=>T+(H-T-B)*(1-(s-0.5)/5);
+  let svg=`<svg class="scatter" width="100%" viewBox="0 0 ${W} ${H}" style="max-width:${W}px">`;
+  [0,20,40,60,80].forEach(g=>{svg+=`<line x1="${X(g)}" y1="${T}" x2="${X(g)}" y2="${H-B}" stroke="#1f2937"/><text x="${X(g)}" y="${H-B+16}" fill="#64748b" font-size="10" text-anchor="middle">${g}%</text>`;});
+  [1,2,3,4,5].forEach(s=>{svg+=`<line x1="${L}" y1="${Y(s)}" x2="${W-R}" y2="${Y(s)}" stroke="#1f2937" stroke-dasharray="2,4"/><text x="${L-8}" y="${Y(s)+4}" fill="#64748b" font-size="10" text-anchor="end">${"★".repeat(s)}</text>`;});
+  pts.forEach((p,i)=>{
+    const c=tcol[p.track];
+    svg+=`<circle data-i="${i}" cx="${X(Math.min(p.x,80))}" cy="${Y(p.stars)}" r="${4+Math.min(p.n,8)}" fill="${c}" fill-opacity=".55" stroke="${c}"/>`;});
+  svg+=`<text x="${W-R+10}" y="${T+8}" fill="#64748b" font-size="10">左上=替代空白+卡脖子高</text></svg>`;
+  root.innerHTML=`<h2 class="sec">替代率 × 卡脖子散点<span class="en">气泡大小 = 公司数</span></h2>
+  <div class="note">${usedLayers.map(l=>`<span class="dot" style="background:${LAYER_COLOR[l]};margin:0 4px 0 12px"></span>${esc(l)}`).join("")}</div>
+  <div style="background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:10px 6px">${svg}</div>
+  <h2 class="sec">梯度分层表<span class="en">03 文档 A/B/C 类</span></h2>
+  ${[
+    ["A 类 · <5% 替代空白区（空间最大、难度最高）","aClass","hit"],
+    ["B 类 · 5%~30% 替代主战场（订单可验证）","bClass","watch"],
+    ["C 类 · >30% 替代率不再是主要矛盾","cClass","ok"],
+  ].map(([title,key,pill])=>{
+    const rows=DATA.substitution[key];
+    if(!rows||!rows.length)return"";
+    return`<h3 style="margin:16px 0 8px"><span class="pill ${pill}">${title.split(" · ")[0]}</span> <span style="font-size:13px">${title.split(" · ")[1]}</span></h3>
+    <div class="wrap"><table><tr>${rows[0].map(h=>`<th>${esc(strip(h))}</th>`).join("")}</tr>
+    ${rows.slice(1).map(r=>`<tr>${r.map(c=>`<td>${esc(strip(c))}</td>`).join("")}</tr>`).join("")}</table></div>`;}).join("")}
+  <h2 class="sec">设备分型国产化率<span class="en">东吴证券测算 · A 级</span></h2>
+  <div class="wrap"><table><tr>${DATA.substitution.equipment[0].map(h=>`<th>${esc(strip(h))}</th>`).join("")}</tr>
+  ${DATA.substitution.equipment.slice(1).map(r=>`<tr>${r.map((c,i)=>`<td class="${i>0&&i<3?"num":""}">${esc(strip(c))}</td>`).join("")}</tr>`).join("")}</table></div>
+  ${DATA.substitution.tracking.length?`<h2 class="sec">跟踪清单<span class="en">每月复核</span></h2><div class="quote"><ol style="margin-left:18px">${DATA.substitution.tracking.map(t=>`<li style="margin-bottom:6px">${esc(strip(t))}</li>`).join("")}</ol></div>`:""}`;
+  // 散点 tooltip
+  const tip=$("#tip");
+  root.querySelectorAll("circle[data-i]").forEach(c=>{
+    c.addEventListener("mousemove",e=>{const p=pts[+c.dataset.i];
+      tip.style.opacity=1;tip.style.left=(e.clientX+12)+"px";tip.style.top=(e.clientY+12)+"px";
+      tip.innerHTML=`<b>${esc(p.track)}</b> · 替代率≈${p.x.toFixed(0)}% · ${"★".repeat(p.stars)} · ${p.n} 家`;});
+    c.addEventListener("mouseleave",()=>tip.style.opacity=0);});
+}
+
+/* ---------- 4. 公司清单 ---------- */
+const listState={q:"",layer:"",status:"",sort:"",dir:1};
+function renderList(root){
+  const layers=[...new Set(DATA.companies.map(c=>c.layer))];
+  root.innerHTML=`<h2 class="sec">公司清单<span class="en">companies.csv · 唯一事实源</span></h2>
+  <div class="toolbar">
+    <input id="q" placeholder="搜索公司 / 产品 / 代码 / 备注…" value="${esc(listState.q)}">
+    <select id="fl"><option value="">全部层级</option>${layers.map(l=>`<option ${listState.layer===l?"selected":""}>${esc(l)}</option>`).join("")}</select>
+    <select id="fs"><option value="">全部状态</option><option value="listed" ${listState.status==="listed"?"selected":""}>上市</option><option value="unlisted" ${listState.status==="unlisted"?"selected":""}>未上市</option><option value="pending" ${listState.status==="pending"?"selected":""}>进行中</option></select>
+    <span class="cnt" id="cnt"></span>
+  </div>
+  <div class="wrap" style="max-height:70vh;overflow-y:auto"><table id="ct">
+  <thead><tr><th class="sortable" data-k="name">公司</th><th class="sortable" data-k="layer">层级</th><th class="sortable" data-k="track">赛道</th><th>核心产品</th><th class="sortable" data-k="status">状态</th><th>代码</th><th class="sortable" data-k="pct">国产化率</th><th class="sortable" data-k="stars">卡脖子</th></tr></thead>
+  <tbody></tbody></table></div>`;
+  const draw=()=>{
+    let rows=DATA.companies.map((c,i)=>({c,i})).filter(({c})=>{
+      if(listState.layer&&c.layer!==listState.layer)return false;
+      if(listState.status&&STATUS(c.status)[0]!==listState.status)return false;
+      if(listState.q){const q=listState.q.toLowerCase();
+        if(![c.name,c.track,c.product,c.code,c.note,c.localization].some(v=>String(v).toLowerCase().includes(q)))return false;}
+      return true;});
+    if(listState.sort){const k=listState.sort;
+      rows.sort((a,b)=>{let va=a.c[k],vb=b.c[k];
+        if(k==="status"){va=STATUS(va)[0];vb=STATUS(vb)[0];}
+        if(typeof va==="number")return(va-vb)*listState.dir;
+        return String(va).localeCompare(String(vb),"zh")*listState.dir;});}
+    $("#ct tbody").innerHTML=rows.map(({c,i})=>{const[cls,label]=STATUS(c.status);
+      return`<tr class="click" onclick="showDrawer(${i})"><td><b>${esc(c.name)}</b></td><td class="small">${esc(c.layer)}</td><td>${esc(c.track)}</td><td class="small">${esc(c.product)}</td><td><span class="pill ${cls==="listed"?"ok":cls==="pending"?"watch":"off"}">${label}</span></td><td class="num small">${esc(c.code)}</td><td class="small">${esc(strip(c.localization))||"—"}</td><td class="stars">${"★".repeat(c.stars||0)||"—"}</td></tr>`;}).join("");
+    $("#cnt").textContent=`${rows.length} / ${DATA.companies.length} 家`;
+  };
+  $("#q").oninput=e=>{listState.q=e.target.value;draw();};
+  $("#fl").onchange=e=>{listState.layer=e.target.value;draw();};
+  $("#fs").onchange=e=>{listState.status=e.target.value;draw();};
+  root.querySelectorAll("th.sortable").forEach(th=>th.onclick=()=>{
+    const k=th.dataset.k;
+    if(listState.sort===k)listState.dir*=-1;else{listState.sort=k;listState.dir=1;}
+    draw();});
+  draw();
+}
+
+/* ---------- 5. 情景前瞻 ---------- */
+const PKEY="ai-dashboard-pred-states";
+function predStates(){try{return JSON.parse(localStorage.getItem(PKEY)||"{}")}catch(e){return{}}}
+function renderScenario(root){
+  const S=DATA.scenarios;
+  const colors=["#10b981","#f59e0b","#ef4444"];
+  const probs=S.list.map(s=>s.prob+(s.probHi?(s.probHi-s.prob)/2:0));
+  root.innerHTML=`<h2 class="sec">SDLLMTK · LLM Token 价格指数<span class="en">收入侧先行指标（07 文档）</span></h2>
+  <div class="card" style="margin-bottom:8px">${lineChart(S.sdllmtk.map(p=>({x:p.date.split("-").slice(0,2).join("/"),y:p.value})),760,346,"#22d3ee",[{i:S.sdllmtk.length-1,text:"低于诞生基线 · -54%",dy:16}])}</div>
+  <div class="note">支出加权价格指数（非总支出）：跌破诞生基线 = 2026 涨幅全部回吐；下跌减速（-9.1%→-1.3%/周）= 待验证的 Jevons / 收入通缩分水岭。</div>
+  <h2 class="sec">加息 × 盈利 miss：三档情景<span class="en">前瞻 12 个月</span></h2>
+  <div class="tree">
+    <div class="tnode hot">加息落地 × 盈利不达预期</div><div class="varrow"></div>
+    <div class="trow"><div class="tnode">① 股权通道<br><span class="small">de-rate → capex discipline 话语权</span></div><div class="tnode">② 债务通道<br><span class="small">EBITDA 承压 → 契约/再融资收紧</span></div><div class="tnode">③ 叙事通道<br><span class="small">竞赛合理性动摇 → 囚徒困境解体</span></div></div><div class="varrow"></div>
+    <div class="trow">${S.list.map((s,i)=>`<div class="tnode" style="min-width:220px"><b style="color:${colors[i]}">${esc(s.name)}</b><br><span class="small">${esc(strip(s.text)).slice(0,60)}…</span></div>`).join("")}</div>
+  </div>
+  <div class="scen">${S.list.map((s,i)=>`
+    <div class="card"><div class="k">情景${"一二三"[i]} · ${esc(s.name)}</div>
+    <div class="v" style="color:${colors[i]}">${s.prob}${s.probHi?"-"+s.probHi:""}<span style="font-size:13px;color:var(--dim)">% 主观概率</span></div>
+    <div class="probbar"><i style="width:${probs[i]}%;background:${colors[i]}"></i></div>
+    <div class="s" style="margin-top:8px">${esc(strip(s.text))}</div></div>`).join("")}
+  </div>
+  <h2 class="sec">脆弱性排序<span class="en">谁先断</span></h2>
+  <div class="wrap"><table><tr>${S.tiers[0].map(h=>`<th>${esc(strip(h))}</th>`).join("")}</tr>
+  ${S.tiers.slice(1).map(r=>`<tr>${r.map((c,i)=>`<td class="${i===0?"":""}" ${i===0?'style="font-weight:700;color:var(--amber)"':""}>${esc(strip(c))}</td>`).join("")}</tr>`).join("")}</table></div>
+  <h2 class="sec">前瞻时间表<span class="en">把判断挂到日历上</span></h2>
+  <div class="tl">${S.timeline.map(r=>`<div class="ev"><span class="d">${esc(strip(r[0]))}</span> — <b>${esc(strip(r[1]))}</b><br><span class="small">${esc(strip(r[2]))}</span></div>`).join("")}</div>
+  <h2 class="sec">可证伪的前瞻判断<span class="en">点击循环：待验证 → 成立 → 失效（存本地）</span></h2>
+  <div class="wrap"><table><tr><th>#</th><th>判断</th><th>主观概率</th><th>失效条件</th><th>状态</th></tr>
+  ${S.predictions.map((r)=>{const k=encodeURIComponent(strip(r[1]).slice(0,40));const st=predStates()[k]||0;
+    return`<tr class="pred" onclick="cyclePred('${k}')"><td class="num">${esc(strip(r[0]))}</td><td>${esc(strip(r[1]))}</td><td class="num">${esc(strip(r[2]))}</td><td class="small">${esc(strip(r[3]))}</td><td><span class="st p${st}">${["待验证","成立","失效"][st]}</span></td></tr>`;}).join("")}
+  </table></div>
+  ${S.addon?`<h2 class="sec">监控增补 · PCB 材料链<span class="en">2026-09-16</span></h2>
+  <div class="wrap"><table><tr>${S.addon[0].map(h=>`<th>${esc(strip(h))}</th>`).join("")}</tr>
+  ${S.addon.slice(1).map(r=>`<tr>${r.map(c=>`<td>${esc(strip(c))}</td>`).join("")}</tr>`).join("")}</table></div>`:""}`;
+}
+function cyclePred(k){const s=predStates();s[k]=((s[k]||0)+1)%3;localStorage.setItem(PKEY,JSON.stringify(s));const y=window.scrollY;switchTab();window.scrollTo(0,y);}
+
+/* ---------- 6. 宏观行情 ---------- */
+function renderMacro(root){
+  const entries=Object.entries(DATA.fred);
+  root.innerHTML=`<h2 class="sec">FRED 宏观序列<span class="en">一手数据 · 07 触发器阈值以虚线标注</span></h2>
+  <div class="cards">${entries.map(([k,s])=>`
+    <div class="card"><div class="k">${esc(s.label)}<span class="small"> · ${k}</span></div>
+    <div class="v">${s.latest.toFixed(s.latest<10?2:0)}<span style="font-size:12px;color:var(--dim)">${s.kind==="index"?"":"%"}</span></div>
+    <div class="s">${s.latest_date} · 年初以来 ${s.ytd_change}</div>
+    <div style="margin-top:8px">${spark(s.values,190,44,s.threshold&&s.latest>=s.threshold?"#ef4444":"#22d3ee",s.threshold)}</div>
+    ${s.threshold?`<div class="s">阈值 ${s.threshold}${s.kind==="index"?"":"%"}（红虚线）</div>`:""}</div>`).join("")}
+  </div>
+  <h2 class="sec">触发器明细<span class="en">MACRO_PANEL.md</span></h2>
+  ${DATA.macro.sections.map(s=>`<details><summary>${s.level?({hit:"🔴",watch:"⏳",ok:"🟢"})[s.level]:"·"} ${esc(s.name)} ${s.latest?`— <span style="font-family:var(--mono);color:var(--amber)">${esc(s.latest)}</span>`:""}</summary>
+    <ul>${s.bullets.map(b=>`<li>${esc(strip(b))}</li>`).join("")}</ul>
+    ${s.table?`<div class="wrap"><table><tr>${s.table[0].map(h=>`<th>${esc(strip(h))}</th>`).join("")}</tr>${s.table.slice(1).map(r=>`<tr>${r.map(c=>`<td>${esc(strip(c))}</td>`).join("")}</tr>`).join("")}</table></div>`:""}
+  </details>`).join("")}`;
+}
+
+/* ---------- 启动 ---------- */
+buildTabs();switchTab();
+</script>
+</body>
+</html>

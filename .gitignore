@@ -14,6 +14,9 @@ __pycache__/
 *.log
 /tmp/
 
+# 生成物：可视化仪表盘（project-dashboard skill 随时重建；发布 GitHub Pages 时再取消忽略）
+dashboard/
+
 # 行情调试残留（腾讯/新浪原始响应）
 data/market_data/*.txt
 data/market_data/*.json

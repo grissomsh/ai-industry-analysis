@@ -23,7 +23,7 @@ ai-industry-analysis/
 ├── data/
 │   ├── companies.csv             # 数据主表：147 行 × 14 列（含 AI 收入占比/供应链风险/海外产能）
 │   └── market_data/              # FRED 序列 CSV + 宏观触发器面板 + 行情快照
-└── .claude/skills/market-view-verify/   # 观点核验 skill（五步工作流 + 触发器阈值 + 数据脚本）
+└── .claude/skills/               # 可复用 skill：market-view-verify（观点核验）+ project-dashboard（单文件可视化仪表盘）
 ```
 
 ## 研究线一：产业链梳理
