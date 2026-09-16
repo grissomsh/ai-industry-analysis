@@ -252,7 +252,7 @@ function renderOverview(root){
     return`<div class="ev"><span class="pill ${lvl}">${esc(v.split("（")[0])}</span> <b>${esc(strip(r[0]))}</b><br><span class="small">${esc(ev.length>150?ev.slice(0,150)+"…":ev)}</span></div>`;}).join("")}</div>`:""}
   <h2 class="sec">宏观触发器面板<span class="en">MACRO TRIGGERS</span></h2>
   <div class="wrap"><table><tr><th>#</th><th>状态</th><th>触发器 / 规则</th><th>最新</th></tr>
-  ${sec.map(s=>`<tr><td class="num">${s.no}</td><td>${s.level?`<span class="pill ${s.level}">${s.level==="hit"?"🔴 已触发":s.level==="watch"?"⏳ 测试中":"🟢 正常"}</span>`:"—"}</td><td><b>${esc(s.name)}</b><br><span class="small">${esc(s.rule)}</span></td><td class="num">${esc(s.latest||"—")}</td></tr>`).join("")}
+  ${sec.map(s=>`<tr><td class="num">${s.no}</td><td>${s.level?`<span class="pill ${s.level}">${({hit:"🔴",watch:"⏳",ok:"🟢"})[s.level]} ${esc(s.status||({hit:"已触发",watch:"测试中",ok:"正常"})[s.level])}</span>`:"—"}</td><td><b>${esc(s.name)}</b><br><span class="small">${esc(s.rule)}</span></td><td class="num">${esc(s.latest||"—")}</td></tr>`).join("")}
   </table></div>
   <h2 class="sec">行情结构快照<span class="en">QUOTES</span></h2>
   <div class="note">${esc(DATA.quotes.map(q=>q.group).join(" / "))}（新浪/腾讯快照，见 QUOTES_SNAPSHOT.md）</div>
@@ -430,7 +430,7 @@ function renderMacro(root){
     ${s.threshold?`<div class="s">阈值 ${s.threshold}${s.kind==="index"?"":"%"}（红虚线）</div>`:""}</div>`).join("")}
   </div>
   <h2 class="sec">触发器明细<span class="en">MACRO_PANEL.md</span></h2>
-  ${DATA.macro.sections.map(s=>`<details><summary>${s.level?({hit:"🔴",watch:"⏳",ok:"🟢"})[s.level]:"·"} ${esc(s.name)} ${s.latest?`— <span style="font-family:var(--mono);color:var(--amber)">${esc(s.latest)}</span>`:""}</summary>
+  ${DATA.macro.sections.map(s=>`<details><summary>${s.level?({hit:"🔴",watch:"⏳",ok:"🟢"})[s.level]:"·"} ${esc(s.name)}${s.rule?` <span class="small">· ${esc(s.rule)}</span>`:""} ${s.latest?`— <span style="font-family:var(--mono);color:var(--amber)">${esc(s.latest)}</span>`:""}</summary>
     <ul>${s.bullets.map(b=>`<li>${esc(strip(b))}</li>`).join("")}</ul>
     ${s.table?`<div class="wrap"><table><tr>${s.table[0].map(h=>`<th>${esc(strip(h))}</th>`).join("")}</tr>${s.table.slice(1).map(r=>`<tr>${r.map(c=>`<td>${esc(strip(c))}</td>`).join("")}</tr>`).join("")}</table></div>`:""}
   </details>`).join("")}`;

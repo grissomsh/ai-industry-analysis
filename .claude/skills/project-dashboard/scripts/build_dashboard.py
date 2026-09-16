@@ -167,7 +167,7 @@ def load_macro(root):
     sections = []
     for block in re.split(r"^## ", read(path), flags=re.M)[1:]:
         head, _, body = block.partition("\n")
-        m = re.match(r"(\d+)\.\s+(.+?)(?:\s+—\s+(🟢|⏳|🔴)\s*(\S+))?\s*$", head.strip())
+        m = re.match(r"(\d+)\.\s+(.+?)(?:\s*—\s*(🟢|⏳|🔴)\s*(\S+))?\s*$", head.strip())
         if not m:
             continue
         latest = None
@@ -175,8 +175,38 @@ def load_macro(root):
         if lm:
             latest = lm.group(1).strip()
         tbl = pipe_table(body)
+        if latest is None and len(tbl) > 1:
+            hdr = tbl[0]
+            if "最新" in hdr:  # 最新为一列（如指数位置表）：首列名称 + 最新值 +（距峰值）
+                ci = hdr.index("最新")
+                pi = hdr.index("距峰值") if "距峰值" in hdr else None
+                hi = hdr.index("峰值") if "峰值" in hdr else None
+                parts = []
+                for r in tbl[1:]:
+                    if len(r) <= ci or not r[ci].strip():
+                        continue
+                    piece = (r[0].strip() + " " if r[0].strip() else "") + r[ci].strip()
+                    dd = r[pi].strip() if pi is not None and len(r) > pi and r[pi].strip() else None
+                    if dd is None and hi is not None and len(r) > hi:
+                        try:  # 无距峰值列时由 最新/峰值 现算回撤
+                            v = float(r[ci].replace(",", "").rstrip("%"))
+                            h = float(r[hi].replace(",", "").rstrip("%"))
+                            dd = f"{(v / h - 1) * 100:.1f}%"
+                        except ValueError:
+                            dd = None
+                    if dd:
+                        piece += f"（{dd}）"
+                    parts.append(piece)
+                if parts:
+                    latest = " / ".join(parts)
+            elif len(tbl[-1]) >= 2:  # 时序表（如 CPI 月度 YoY）：末行末列 + 首列标注
+                last = tbl[-1]
+                latest = f"{last[-1]}（{last[0]}）"
         bullets = [re.sub(r"^-\s+", "", ln).strip() for ln in body.split("\n") if ln.strip().startswith("- ")]
-        sections.append({"no": int(m.group(1)), "name": m.group(2).strip(),
+        name_part = m.group(2).strip()
+        nm = re.match(r"^(.+)（(.+?)）\s*$", name_part)
+        name, rule = (nm.group(1).strip(), nm.group(2).strip()) if nm else (name_part, "")
+        sections.append({"no": int(m.group(1)), "name": name, "rule": rule,
                          "level": LEVEL.get(m.group(3)) if m.group(3) else None,
                          "status": (m.group(4) or "").strip(),
                          "latest": latest, "bullets": bullets,
