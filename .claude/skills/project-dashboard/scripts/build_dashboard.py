@@ -45,6 +45,31 @@ def pipe_table(text):
             break
     return rows
 
+def addon_sections(text):
+    """section 八 内各「### 增补N：标题（日期 增补）」子节 → [{title, date, rows}]，每节取第一张表。"""
+    lines = text.split("\n")
+    start = end = None
+    for i, ln in enumerate(lines):
+        if "八、监控仪表盘增补" in ln and ln.startswith("## ") and not ln.startswith("### "):
+            start = i + 1
+        elif start is not None and ln.startswith("## "):
+            end = i
+            break
+    if start is None:
+        return []
+    parts = re.split(r"^### (.+)$", "\n".join(lines[start:end if end is not None else len(lines)]), flags=re.M)
+    out = []
+    for i in range(1, len(parts) - 1, 2):
+        head, body = parts[i].strip(), parts[i + 1]
+        rows = pipe_table(body)
+        if not rows:
+            continue
+        dm = re.search(r"（(\d{4}-\d{2}-\d{2}) 增补）", head)
+        title = re.sub(r"（\d{4}-\d{2}-\d{2} 增补）", "", head).strip()
+        title = re.sub(r"^增补[一二三四五六七八九十]+：", "", title).strip()
+        out.append({"title": title, "date": dm.group(1) if dm else "", "rows": rows})
+    return out
+
 def num_list(text):
     out = []
     for ln in text.split("\n"):
@@ -288,7 +313,7 @@ def load_doc07(root):
         "tiers": fallback_table(pipe_table(slice_after(t, "四、脆弱性排序")), 4),
         "timeline": fallback_table(pipe_table(slice_after(t, "五、前瞻时间表")), 3),
         "predictions": fallback_table(pipe_table(slice_after(t, "六、可证伪的前瞻判断")), 4),
-        "addon_t": pipe_table(slice_after(t, "八、监控仪表盘增补")),
+        "addons": addon_sections(t),
     }
 
 # ---------- 主流程 ----------
@@ -310,9 +335,7 @@ def main():
     sub = load_doc03(root)
     causal = load_doc06(root)
     scen = load_doc07(root)
-    addon = scen.pop("addon_t", [])
-    if len(addon) > 1:
-        scen["addon"] = addon
+    scen["addons"] = scen.pop("addons", [])
 
     payload = {
         "meta": {"generated_at": datetime.now().strftime("%Y-%m-%d %H:%M"),
@@ -349,7 +372,7 @@ def main():
                       ("03 B类", sub.get("bClass")), ("03 C类", sub.get("cClass")),
                       ("03 跟踪", sub.get("tracking")), ("06 链环", causal.get("chain")),
                       ("07 SDLLMTK", scen.get("sdllmtk")), ("07 情景", scen.get("list")),
-                      ("07 预测", scen.get("predictions")), ("07 增补", scen.get("addon"))]:
+                      ("07 预测", scen.get("predictions")), ("07 增补", scen.get("addons"))]:
         n = len(val) if val else 0
         flag = "✅" if n else "⚠️ "
         print(f"   {flag} {name}: {n}")
