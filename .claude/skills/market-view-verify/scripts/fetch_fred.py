@@ -35,6 +35,13 @@ SERIES = {
     "T5YIFR": "5y5y远期通胀",
 }
 
+# FOMC 目标区间变更事件（生效日, 新区间下限%, 新区间上限%）。
+# 用途：DFF 有效利率滞后 1-3 日发布，生效日 > 最新观测时自动在面板第 7 节挂提示，
+# 数据跟上后自动消失（替代曾用的手工追记——两次被刷新抹掉的事故，2026-09）。
+FOMC_EVENTS = [
+    ("2026-09-17", 3.75, 4.00),
+]
+
 
 def fetch_one(sid: str, start: str, outdir: str) -> pd.DataFrame:
     """下载单个序列为 CSV 并返回 DataFrame。"""
@@ -85,10 +92,17 @@ def panel(outdir: str) -> str:
     if df is not None:
         last = df.iloc[-1]
         n5 = int((df.tail(60)["v"] >= 5.0).sum())
-        status = "🔴 已触发" if n5 >= 5 else ("⏳ 测试中" if last["v"] >= 4.9 else "🟢 未触发")
+        # 夏尔马口径 = 连续 ≥5 个交易日收盘 >5%——必须算尾部连续天数，累计天数会误报（2026-09-26 修复）
+        streak = 0
+        for v in reversed(list(df.tail(60)["v"])):
+            if v >= 5.0:
+                streak += 1
+            else:
+                break
+        status = "🔴 已触发" if streak >= 5 else ("⏳ 测试中" if last["v"] >= 4.9 else "🟢 未触发")
         L.append(f"## 1. 10Y 名义利率（夏尔马: 连续5日收盘>5% = 果断突破）— {status}\n")
         L.append(f"- 最新收盘: **{last['v']:.2f}%**（{last['date'].date()}，FRED 约滞后 2-4 个交易日）")
-        L.append(f"- 近 60 个交易日收盘 ≥5% 天数: **{n5}**\n")
+        L.append(f"- 近 60 个交易日收盘 ≥5% 天数: **{n5}** | 尾部连续 ≥5% 天数: **{streak}**\n")
 
     # ── 2. 10Y 实际利率: 凯投宏观 2.5% 触发器 ──
     df = need("DFII10")
@@ -165,7 +179,18 @@ def panel(outdir: str) -> str:
         L.append(f"- 最新: **{df.iloc[-1]['v']:.2f}%** | 年初: {y.iloc[0]['v']:.2f}% | 近90天变动: {chg90:+.2f}pct")
         path = [f"{r['date'].strftime('%y/%m')}:{r['v']:.2f}" for _, r in df.tail(12).iterrows()]
         L.append(f"- 近 12 期轨迹: {' → '.join(path)}")
-        L.append("- 判定: 路径反转（暂停→上行）= 🔴 加息转向; 持平 = ⏳; 下行 = 🟢 宽松中\n")
+        L.append("- 判定: 路径反转（暂停→上行）= 🔴 加息转向; 持平 = ⏳; 下行 = 🟢 宽松中")
+        last_obs = df.iloc[-1]["date"]
+        for eff, lo, hi in FOMC_EVENTS:
+            if last_obs < pd.Timestamp(eff):
+                mid = (lo + hi) / 2
+                L.append(
+                    f"- ⚠️ **追记（{pd.Timestamp.now().strftime('%Y-%m-%d')}，自动生成）**：{eff} 起目标区间已上调至 **{lo:.2f}-{hi:.2f}%**（FOMC 前一日决议加息），"
+                    f"上方 EFFR {df.iloc[-1]['v']:.2f}% 为旧区间数据（最新观测 {last_obs.strftime('%Y-%m-%d')} = 旧区间末日）；"
+                    f"新有效利率（~{mid:.2f}%）待 FRED 上线（生效后 1-3 个交易日）后自动替换，本追记随数据跟上自动消失。上新前\"判定\"行不反映加息转向\n"
+                )
+            else:
+                L.append("")
 
     # ── 8. CPI 与通胀锚 ──
     df = need("CPIAUCSL")
